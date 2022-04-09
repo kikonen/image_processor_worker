@@ -33,3 +33,10 @@
 
 # Ignore master key for decrypting credentials and more.
 /config/master.key
+
+.yarnrc
+/node_modules
+.dockerignore*
+Dockerfile*
+docker*
+

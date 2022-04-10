@@ -13,5 +13,15 @@ class ImageFetchJob < ApplicationJob
       token: Token.create_system_token)
 
     Rails.logger.info image
+
+    image_url = image[:url]
+    file_name = image_url.split('/').last
+    image_response = ApiRequest.raw_get(url: image_url)
+
+    output_file_name = File.join(Rails.root, "log", file_name)
+    File.open(output_file_name, "wb") do |f|
+      f.write(image_response[:content])
+    end
+    Rails.logger.info "OUT: #{output_file_name}"
   end
 end

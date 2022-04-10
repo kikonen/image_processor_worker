@@ -9,7 +9,7 @@ default: &default
 
 development:
   <<: *default
-x  database: <%= "#{ENV['DB_PREFIX']}development" %>
+  database: <%= "#{ENV['DB_PREFIX']}development" %>
 
 test:
   <<: *default

@@ -76,7 +76,11 @@ gem 'resque'
 gem 'jwt'
 gem 'oj'
 gem 'exif'
+gem 'curb'
 
 group :development, :test do
   gem 'amazing_print'
+
+  gem 'pry-rails'
+  gem 'pry-byebug'
 end

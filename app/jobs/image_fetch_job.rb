@@ -14,6 +14,7 @@ class ImageFetchJob < ApplicationJob
 
     Rails.logger.info image
 
+    image_response = nil
     begin
       image_url = image[:url]
       file_name = image_url.split('/').last
@@ -27,15 +28,31 @@ class ImageFetchJob < ApplicationJob
     end
 
     begin
-      binding.pry
+      exif_values = fetch_exif_values(image_response)
       update_data = {
-        status: :fetched,
-        mime_type: image_response[:mime_type],
+        image: {
+          status: :fetched,
+          mime_type: image_response[:mime_type],
+          exif_values: exif_values,
+        }
       }
+
       update_response = request.put(
         url: "/images/#{image_id}",
         token: Token.create_system_token,
         body: update_data)
+    end
+  end
+
+  def fetch_exif_values(image_response)
+    data = Exif::Data.new(image_response[:content])
+
+    # NOTE KI data CAN and WILL contain invalid characters
+    data[:exif].map do |k, v|
+      {
+        key: k,
+        value: v.is_a?(String) ? v.gsub(/[^[:print:]]/,'.') : v
+      }
     end
   end
 end

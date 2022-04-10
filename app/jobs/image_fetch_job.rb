@@ -7,8 +7,8 @@ class ImageFetchJob < ApplicationJob
     image_id = params[:image_id]
     Rails.logger.info "IMAGE_FETCH: #{image_id}"
 
-    request = ApiRequest.new
-    image = request.get(
+    api = ApiRequest.new
+    image = api.get(
       url: "/images/#{image_id}",
       token: Token.create_system_token)
 
@@ -18,7 +18,7 @@ class ImageFetchJob < ApplicationJob
     begin
       image_url = image[:url]
       file_name = image_url.split('/').last
-      image_response = ApiRequest.new.raw_request(url: image_url)
+      image_response = api.raw_request(url: image_url)
 
       output_file_name = File.join(Rails.root, "log", file_name)
       File.open(output_file_name, "wb") do |f|
@@ -37,7 +37,7 @@ class ImageFetchJob < ApplicationJob
         }
       }
 
-      update_response = request.put(
+      update_response = api.put(
         url: "/images/#{image_id}",
         token: Token.create_system_token,
         body: update_data)
@@ -54,5 +54,8 @@ class ImageFetchJob < ApplicationJob
         value: v.is_a?(String) ? v.gsub(/[^[:print:]]/,'.') : v
       }
     end
+  rescue Exif::NotReadable => e
+    Rails.logger.error e
+    nil
   end
 end

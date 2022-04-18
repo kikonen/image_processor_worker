@@ -114,7 +114,7 @@ class ApiRequest
         end
       }
 
-      Rails.logger.info "#{http_method} #{request_url}"
+      Rails.logger.info "#{http_method} #{request_url}\n#{encoded_body}"
 
       curl_call.call
       response_body = curl.body_str

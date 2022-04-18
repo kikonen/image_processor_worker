@@ -18,6 +18,8 @@ require "rails/test_unit/railtie"
 # you've limited to :test, :development, or :production.
 Bundler.require(*Rails.groups)
 
+require File.expand_path('../../app/lib/thread_log_formatter', __FILE__)
+
 module ImageProcessorWorker
   class Application < Rails::Application
     # Initialize configuration defaults for originally generated Rails version.

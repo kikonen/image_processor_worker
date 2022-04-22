@@ -20,10 +20,8 @@ module Token
   def self.create_user_token(user_id)
     secret = Secret['JWT_KEY']
 
-    user = User.find(user_id)
-
     data = {
-      user: user.id,
+      user: user_id,
       exp: USER_TOKEN_EXPIRE.from_now.to_i,
     }
     jwt_token = JWT.encode(data, secret)

@@ -8,10 +8,13 @@ class ImageFetchJob < ApplicationJob
     Rails.logger.info "IMAGE_FETCH: #{image_id}"
 
     api = ApiRequest.new
-    image = api.get(
+    response = api.get(
       url: "/images/#{image_id}",
       token: Token.create_system_token)
 
+    raise "not found" unless response.success?
+
+    image = response.content
     Rails.logger.info image
 
     image_response = nil
@@ -22,7 +25,7 @@ class ImageFetchJob < ApplicationJob
 
       output_file_name = File.join(Rails.root, "log", file_name)
       File.open(output_file_name, "wb") do |f|
-        f.write(image_response[:content])
+        f.write(image_response.content)
       end
       Rails.logger.info "OUT: #{output_file_name}"
     end
@@ -32,7 +35,7 @@ class ImageFetchJob < ApplicationJob
       update_data = {
         image: {
           status: :fetched,
-          mime_type: image_response[:mime_type],
+          mime_type: image_response.content_type,
           exif_values: exif_values,
         }
       }
@@ -45,7 +48,7 @@ class ImageFetchJob < ApplicationJob
   end
 
   def fetch_exif_values(image_response)
-    data = Exif::Data.new(image_response[:content])
+    data = Exif::Data.new(image_response.content)
 
     # NOTE KI data CAN and WILL contain invalid characters
     data[:exif].map do |k, v|

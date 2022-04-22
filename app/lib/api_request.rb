@@ -6,10 +6,15 @@ class ApiRequest
   HEADER_CONTENT_TYPE = 'Content-Type'
   HEADER_CONTENT_TYPE_HTTP2 = 'content-type'
 
-  CONTENT_JSON = 'application/json'
+  CONTENT_TYPE_JSON = 'application/json'
 
   HEAD_HTTP_RESPONSE= 'HTTP/'
 
+  HTTP_SUCCESS_FIRST = 100
+  HTTP_ERROR_FIRST = 400
+  HTTP_NOT_FOUND = 404
+
+  HTTP_SUCCESS_RANGE = (HTTP_SUCCESS_FIRST...HTTP_ERROR_FIRST)
 
   def initialize
     @base_url = ENV['API_BASE_URL'].gsub(/\/\z/, '')
@@ -19,13 +24,13 @@ class ApiRequest
         url:,
         token:,
         query: nil,
-        accept_mime_type: CONTENT_JSON)
+        accept_content_type: CONTENT_TYPE_JSON)
     do_request(
       http_method: :get,
       url: url,
       token: token,
       query: query,
-      accept_mime_type: accept_mime_type)
+      accept_content_type: accept_content_type)
   end
 
   def post(
@@ -33,14 +38,14 @@ class ApiRequest
         token:,
         query: nil,
         body: nil,
-        accept_mime_type: CONTENT_JSON)
+        accept_content_type: CONTENT_TYPE_JSON)
     do_request(
       http_method: :post,
       url: url,
       token: token,
       query: query,
       body: body,
-      accept_mime_type: accept_mime_type)
+      accept_content_type: accept_content_type)
   end
 
   def put(
@@ -48,14 +53,14 @@ class ApiRequest
         token:,
         query: nil,
         body: nil,
-        accept_mime_type: CONTENT_JSON)
+        accept_content_type: CONTENT_TYPE_JSON)
     do_request(
       http_method: :put,
       url: url,
       token: token,
       query: query,
       body: body,
-      accept_mime_type: accept_mime_type)
+      accept_content_type: accept_content_type)
   end
 
   def do_request(
@@ -64,8 +69,8 @@ class ApiRequest
         token:,
         query: nil,
         body: nil,
-        request_mime_type: CONTENT_JSON,
-        accept_mime_type: CONTENT_JSON)
+        request_content_type: CONTENT_TYPE_JSON,
+        accept_content_type: CONTENT_TYPE_JSON)
 
     url_sep = url.start_with?('/') ? '' : '/'
     request_url = "#{@base_url}#{url_sep}#{url}"
@@ -75,13 +80,14 @@ class ApiRequest
 
     request_headers = {
       HEADER_BEARER => token,
-      HEADER_CONTENT_TYPE => request_mime_type,
-      HEADER_ACCEPT => accept_mime_type,
+      HEADER_CONTENT_TYPE => request_content_type,
+      HEADER_ACCEPT => accept_content_type,
     }
 
     response_status = nil
     response_body = nil
-    response_mime_type = nil
+    response_content_type = nil
+    response_content_type = nil
     begin
       curl = Curl::Easy.new
 
@@ -95,7 +101,7 @@ class ApiRequest
         if data.start_with?(HEAD_HTTP_RESPONSE)
           response_status = data.split(' ')[1].to_i
         elsif data.start_with?(HEADER_CONTENT_TYPE_HTTP2) || data.start_with?(HEADER_CONTENT_TYPE)
-          response_mime_type = data.split(':')[1].split(';')[0].strip
+          response_content_type = data.split(':')[1].split(';')[0].strip
         end
         data.size
       end
@@ -121,7 +127,11 @@ class ApiRequest
       curl.close
     end
 
-    Util.decode_json(response_body)
+    ApiResponse.new(
+      status: response_status,
+      content_type: response_content_type,
+      content: decode_response(response_content_type, response_body),
+    )
   end
 
   def raw_request(
@@ -129,8 +139,8 @@ class ApiRequest
         url:,
         query: nil,
         body: nil,
-        request_mime_type: CONTENT_JSON,
-        accept_mime_type: CONTENT_JSON)
+        request_content_type: CONTENT_TYPE_JSON,
+        accept_content_type: CONTENT_TYPE_JSON)
     encoded_body = encode_payload(:json, body)
     encoded_query = encode_payload(:query, query)
 
@@ -138,7 +148,7 @@ class ApiRequest
 
     response_status = nil
     response_body = nil
-    response_mime_type = nil
+    response_content_type = nil
     begin
       curl = Curl::Easy.new
       curl.url = encoded_query ? "#{request_url}?#{encoded_query}" : request_url
@@ -147,7 +157,7 @@ class ApiRequest
         if data.start_with?(HEAD_HTTP_RESPONSE)
           response_status = data.split(' ')[1].to_i
         elsif data.start_with?(HEADER_CONTENT_TYPE_HTTP2) || data.start_with?(HEADER_CONTENT_TYPE)
-          response_mime_type = data.split(':')[1].split(';')[0].strip
+          response_content_type = data.split(':')[1].split(';')[0].strip
         end
         data.size
       end
@@ -173,10 +183,11 @@ class ApiRequest
       curl.close
     end
 
-    {
-      mime_type: response_mime_type,
+    ApiResponse.new(
+      status: response_status,
+      content_type: response_content_type,
       content: response_body,
-    }
+    )
   end
 
   def encode_payload(request_content_type, data)
@@ -187,6 +198,17 @@ class ApiRequest
       Util.encode_json(data)
     when :query
       data.to_query
+    else
+      data
+    end
+  end
+
+  def decode_response(response_content_type, data)
+    return nil if data.nil?
+
+    case response_content_type
+    when CONTENT_TYPE_JSON
+      Util.decode_json(data)
     else
       data
     end

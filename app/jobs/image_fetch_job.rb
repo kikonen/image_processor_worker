@@ -35,7 +35,7 @@ class ImageFetchJob < ApplicationJob
     end
 
     begin
-      exif_values = fetch_exif_values(image_response) if status != :failed
+      exif_values = fetch_exif_values(image_response) if image_status != :failed
       update_data = {
         image: {
           status: image_status,

@@ -18,6 +18,7 @@ class ImageFetchJob < ApplicationJob
     Rails.logger.info image
 
     image_response = nil
+    image_status = :failed
     begin
       image_url = image[:url]
       file_name = image_url.split('/').last
@@ -27,14 +28,17 @@ class ImageFetchJob < ApplicationJob
       File.open(output_file_name, "wb") do |f|
         f.write(image_response.content)
       end
+      image_status = :fetched
       Rails.logger.info "OUT: #{output_file_name}"
+    rescue => e
+      Rails.logger.error e
     end
 
     begin
-      exif_values = fetch_exif_values(image_response)
+      exif_values = fetch_exif_values(image_response) if status != :failed
       update_data = {
         image: {
-          status: :fetched,
+          status: image_status,
           mime_type: image_response.content_type,
           exif_values: exif_values,
         }
@@ -58,6 +62,9 @@ class ImageFetchJob < ApplicationJob
       }
     end
   rescue Exif::NotReadable => e
+    Rails.logger.error e
+    nil
+  rescue => e
     Rails.logger.error e
     nil
   end

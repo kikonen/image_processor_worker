@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 class ApiRequest
-  HEADER_BEARER = 'Bearer'
+  HEADER_AUTHORIZATION = 'Authorization'
   HEADER_ACCEPT = 'Accept'
   HEADER_CONTENT_TYPE = 'Content-Type'
   HEADER_CONTENT_TYPE_HTTP2 = 'content-type'
@@ -79,7 +79,7 @@ class ApiRequest
     encoded_query = encode_payload(:query, query)
 
     request_headers = {
-      HEADER_BEARER => token,
+      HEADER_AUTHORIZATION => token,
       HEADER_CONTENT_TYPE => request_content_type,
       HEADER_ACCEPT => accept_content_type,
     }

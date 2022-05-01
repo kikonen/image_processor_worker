@@ -78,6 +78,9 @@ gem 'oj'
 gem 'exif'
 gem 'curb'
 
+# NOTE KI https://stackoverflow.com/questions/67773514/getting-warning-already-initialized-constant-on-assets-precompile-at-the-time
+gem "net-http"
+
 group :development, :test do
   gem 'amazing_print'
 
